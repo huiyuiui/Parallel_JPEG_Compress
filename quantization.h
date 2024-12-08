@@ -26,9 +26,9 @@ inline int Chrominance_Qtable[8][8] = {
     {99, 99, 99, 99, 99, 99, 99, 99}
 };
 
-int* quantization(float* dct_image, int height, int width, int channels);
+int* quantization(float* dct_image, int height, int width);
 
-int* dequantization(int* idct_image, int height, int width, int channels);
+int* dequantization(int* idct_image, int height, int width);
 
 
 #endif // QUANTIZATION_H

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-int* quantization(float* dct_image, int height, int width, int channels){
+int* quantization(float* dct_image, int height, int width){
     int CbCr_height = height / 2;
     int CbCr_width = width / 2;
     int* quantized_image = new int[height * width + 2 * CbCr_height * CbCr_width];
@@ -33,7 +33,7 @@ int* quantization(float* dct_image, int height, int width, int channels){
     return quantized_image;
 }
 
-int* dequantization(int* idct_image, int height, int width, int channels){
+int* dequantization(int* idct_image, int height, int width){
     int CbCr_height = height / 2;
     int CbCr_width = width / 2;
     int* dequantized_image = new int[height * width + 2 * CbCr_height * CbCr_width];

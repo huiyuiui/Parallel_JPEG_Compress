@@ -11,6 +11,7 @@
 #include "color_space.h"
 #include "utility.h"
 #include "quantization.h"
+#include "huffman_code.h"
 
 using namespace std;
 
@@ -38,32 +39,45 @@ int main(int argc, char** argv) {
     int channels = img.channels;
     int total_size = height * width * channels;
 
-    // compressed step 1: convert RGB to YCbCr
+    /* Compression*/
+    // step 1: convert RGB to YCbCr
     float *ycbcr_image = RGB_2_YCbCr(img);
 
-    // compressed step 2: chrominance subsample
+    // step 2: chrominance subsample
     float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
 
-    // compressed step 3: DCT
-    // TODO
+    // step 3: DCT
+    // TODO:
 
-    // compressed step 4: quantization
-    int* quantized_image = quantization(subsampled_image, height, width, channels);
+    // step 4: quantization
+    int* quantized_image = quantization(subsampled_image, height, width);
 
-    // decompressed step 1: dequantization
-    int* dequantized_image = dequantization(quantized_image, height, width, channels);
+    // step 5: huffman encoding
+    auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
 
-    // decompressed step 2: chrominance upsample
+    /* Decompression */
+    // step 1: huffman decoding
+    int *decoded_image = huffman_decode(encoded_image, codebook);
+
+    // step 2: dequantization
+    int* dequantized_image = dequantization(decoded_image, height, width);
+
+    // step 3: IDCT
+    // TODO:
+
+    // step 4: chrominance upsample
     ycbcr_image = chrominance_upsample(subsampled_image, height, width, channels);
 
-    // decompressed step 3: convert YCbCr to RGB
+    // step 5: convert YCbCr to RGB
     float *rgb_image = YcbCr_2_RGB(ycbcr_image, height, width, channels);
 
     float psnr = PSNR(img, rgb_image);
-    float compressed_ratio = compression_ratio(total_size, height * width + 2 * height / 2 * width / 2);
+    float subsample_compressed_ratio = compression_ratio(total_size, height * width + 2 * height / 2 * width / 2);
+    float huffman_compressed_ration = compression_ratio(total_size, encoded_image.length());
 
     cout << "Compressed PSNR: " << psnr << endl;
-    cout << "Compressed ratio: " << compressed_ratio << endl;
+    cout << "Compressed ratio after subsample: " << subsample_compressed_ratio << endl;
+    cout << "Compressed ratio after huffman encode: " << huffman_compressed_ration << endl;
 
     // recover image
     Image rgb_img = {img.width, img.height, img.channels, {}};
