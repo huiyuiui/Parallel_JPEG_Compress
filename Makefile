@@ -12,15 +12,21 @@ TARGETS = jpeg_main
 .PHONY: all
 all: $(TARGETS)
 
-jpeg_main: jpeg_main.o png_io.o
+jpeg_main: jpeg_main.o utility.o png_io.o color_space.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-jpeg_main.o: jpeg_main.cc png_io.h
+jpeg_main.o: jpeg_main.cc utility.h png_io.h color_space.h
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+utility.o: utility.cc utility.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 png_io.o: png_io.cc png_io.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+color_space.o: color_space.cc color_space.h
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 .PHONY: clean
 clean:
-	rm -f $(TARGETS) $(TARGETS:=.o) png_io.o
+	rm -f $(TARGETS) $(TARGETS:=.o) utility.o png_io.o color_space.o

@@ -6,7 +6,10 @@
 #include <mpi.h>
 #include <omp.h>
 #include <immintrin.h>
+#include <iostream>
 #include "png_io.h"
+#include "color_space.h"
+#include "utility.h"
 
 using namespace std;
 
@@ -22,17 +25,47 @@ int main(int argc, char** argv) {
 
     const string filename = argv[1];
 
+    // read image
     Image img = read_png(filename);
 
-    // convert to grey image
-    for (int y = 0; y < img.height; y++) {
-        for (int x = 0; x < img.width; x++) {
-            int gray = (img.data[y][x][0] + img.data[y][x][1] + img.data[y][x][2]) / 3;
-            img.data[y][x][0] = gray;
-            img.data[y][x][1] = gray;
-            img.data[y][x][2] = gray;
+    int height = img.height;
+    int width = img.width;
+    int channels = img.channels;
+    int total_size = height * width * channels;
+
+    // compressed step 1: convert RGB to YCbCr
+    float *ycbcr_image = RGB_2_YCbCr(img);
+
+    // compressed step 2: chrominance subsample
+    float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
+
+    // decompressed step 1: chrominance upsample
+    ycbcr_image = chrominance_upsample(subsampled_image, height, width, channels);
+
+    // decompressed step 2: convert YCbCr to RGB
+    float *rgb_image = YcbCr_2_RGB(ycbcr_image, height, width, channels);
+
+    float psnr = PSNR(img, rgb_image);
+    float compressed_ratio = compression_ratio(total_size, height * width + 2 * height / 2 * width / 2);
+
+    cout << "Compressed PSNR: " << psnr << endl;
+    cout << "Compressed ratio: " << compressed_ratio << endl;
+
+    // recover image
+    Image rgb_img = {img.width, img.height, img.channels, {}};
+    rgb_img.data.resize(height, vector<vector<int>>(width, vector<int>(channels)));
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int c = 0; c < channels; c++)
+            {
+                int index = y * width * channels + x * channels + c;
+                rgb_img.data[y][x][c] = static_cast<int>(rgb_image[index]);
+            }
         }
     }
 
-    write_png("output.png", img);
+    write_png("output.png", rgb_img);
 }   

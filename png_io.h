@@ -2,17 +2,10 @@
 #ifndef PNG_IO_H
 #define PNG_IO_H
 
-#include <vector>
 #include <string>
+#include "utility.h"
 
 using namespace std;
-
-struct Image {
-    int width;
-    int height;
-    int channels;
-    vector<vector<vector<int>>> data; 
-};
 
 Image read_png(const string& filename);
 
