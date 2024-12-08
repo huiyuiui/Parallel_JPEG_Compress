@@ -9,9 +9,9 @@ float PSNR(Image& origin_image, float* compressed_image){
     int width = origin_image.width;
     int channels = origin_image.channels;
 
-    int max_val = 0;
+    float max_val = 0;
     float mse = 0;
-    float PSNR = 0;
+    float psnr = 0;
 
     for (int y = 0; y < height; y++)
     {
@@ -19,7 +19,7 @@ float PSNR(Image& origin_image, float* compressed_image){
         {
             for (int c = 0; c < channels; c++)
             {
-                int index = y * width * channels + x * width + c;
+                int index = y * width * channels + x * channels + c;
                 float diff = origin_image.data[y][x][c] - compressed_image[index];
                 mse += diff * diff;
                 if(max_val < origin_image.data[y][x][c])
@@ -29,9 +29,9 @@ float PSNR(Image& origin_image, float* compressed_image){
     }
 
     mse /= height * width * channels;
-    PSNR = 10 * log10(max_val * max_val / mse);
+    psnr = 10 * log10(max_val * max_val / mse);
 
-    return PSNR;
+    return psnr;
 }
 
 float compression_ratio(int origin_size, int compressed_size){

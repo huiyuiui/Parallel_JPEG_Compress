@@ -49,9 +49,9 @@ float* YcbCr_2_RGB(float* ycbcr_image, int height, int width, int channels){
             {
                 int ycbcr_index = y * width * channels + x * channels;
                 int index = y * width * channels + x * channels + c;
-                int Y = ycbcr_image[ycbcr_index + 0];
-                int Cb = ycbcr_image[ycbcr_index + 1];
-                int Cr = ycbcr_image[ycbcr_index + 2];
+                float Y = ycbcr_image[ycbcr_index + 0];
+                float Cb = ycbcr_image[ycbcr_index + 1];
+                float Cr = ycbcr_image[ycbcr_index + 2];
 
                 rgb_image[index] = (Y - shift_vector[0]) * inv_YCbCr_matrix[c][0] +
                                    (Cb - shift_vector[1]) * inv_YCbCr_matrix[c][1] +

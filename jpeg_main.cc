@@ -10,6 +10,7 @@
 #include "png_io.h"
 #include "color_space.h"
 #include "utility.h"
+#include "quantization.h"
 
 using namespace std;
 
@@ -23,6 +24,10 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     omp_threads = omp_get_max_threads();
 
+    cout << "Number of processes: " << mpi_rank_size << endl;
+    cout << "Number of threads: " << omp_threads << endl;
+
+    assert(argc == 2);
     const string filename = argv[1];
 
     // read image
@@ -39,10 +44,19 @@ int main(int argc, char** argv) {
     // compressed step 2: chrominance subsample
     float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
 
-    // decompressed step 1: chrominance upsample
+    // compressed step 3: DCT
+    // TODO
+
+    // compressed step 4: quantization
+    int* quantized_image = quantization(subsampled_image, height, width, channels);
+
+    // decompressed step 1: dequantization
+    int* dequantized_image = dequantization(quantized_image, height, width, channels);
+
+    // decompressed step 2: chrominance upsample
     ycbcr_image = chrominance_upsample(subsampled_image, height, width, channels);
 
-    // decompressed step 2: convert YCbCr to RGB
+    // decompressed step 3: convert YCbCr to RGB
     float *rgb_image = YcbCr_2_RGB(ycbcr_image, height, width, channels);
 
     float psnr = PSNR(img, rgb_image);
@@ -67,5 +81,5 @@ int main(int argc, char** argv) {
         }
     }
 
-    write_png("output.png", rgb_img);
+    write_png("./assets/output.png", rgb_img);
 }   

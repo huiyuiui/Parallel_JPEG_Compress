@@ -12,10 +12,10 @@ TARGETS = jpeg_main
 .PHONY: all
 all: $(TARGETS)
 
-jpeg_main: jpeg_main.o utility.o png_io.o color_space.o
+jpeg_main: jpeg_main.o utility.o png_io.o color_space.o quantization.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDLIBS)
 
-jpeg_main.o: jpeg_main.cc utility.h png_io.h color_space.h
+jpeg_main.o: jpeg_main.cc utility.h png_io.h color_space.h quantization.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 utility.o: utility.cc utility.h
@@ -27,6 +27,9 @@ png_io.o: png_io.cc png_io.h
 color_space.o: color_space.cc color_space.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+quantization.o: quantization.cc quantization.h
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 .PHONY: clean
 clean:
-	rm -f $(TARGETS) $(TARGETS:=.o) utility.o png_io.o color_space.o
+	rm -f $(TARGETS) $(TARGETS:=.o) utility.o png_io.o color_space.o quantization.o
