@@ -7,6 +7,8 @@
 
 using namespace std;
 
+extern int omp_threads;
+
 struct Image {
     int width;
     int height;

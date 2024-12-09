@@ -2,6 +2,8 @@
 #ifndef QUANTIZATION_H
 #define QUANTIZATION_H
 
+#include "utility.h"
+
 using namespace std;
 
 inline int Luminance_Qtable[8][8]= {

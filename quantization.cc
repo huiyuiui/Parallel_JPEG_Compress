@@ -1,5 +1,6 @@
 #include "quantization.h"
 #include <math.h>
+#include "utility.h"
 
 using namespace std;
 
@@ -8,6 +9,7 @@ int* quantization(float* dct_image, int height, int width){
     int CbCr_width = width / 2;
     int* quantized_image = new int[height * width + 2 * CbCr_height * CbCr_width];
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(2)
     for (int y = 0; y < height; y+=8)
     {
         for (int x = 0; x < width; x+=8)
@@ -38,6 +40,7 @@ int* dequantization(int* idct_image, int height, int width){
     int CbCr_width = width / 2;
     int* dequantized_image = new int[height * width + 2 * CbCr_height * CbCr_width];
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(2)
     for (int y = 0; y < height; y+=8)
     {
         for (int x = 0; x < width; x+=8)

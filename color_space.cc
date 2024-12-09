@@ -1,17 +1,15 @@
 #include "color_space.h"
+#include "utility.h"
 
 using namespace std;
 
 float* RGB_2_YCbCr(Image& rgb_image){
-    float YCbCr_matrix[3][3] = {{0.257, 0.504, 0.098},
-                              {-0.148, -0.291, 0.439},
-                              {0.439, -0.368, -0.071}};
-    float shift_vector[3] = {16.0, 128.0, 128.0};
     int height = rgb_image.height;
     int width = rgb_image.width;
     int channels = rgb_image.channels;
     float* ycbcr_image = new float[height * width * channels];
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(3)
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
@@ -35,12 +33,9 @@ float* RGB_2_YCbCr(Image& rgb_image){
 }
 
 float* YcbCr_2_RGB(float* ycbcr_image, int height, int width, int channels){
-    float inv_YCbCr_matrix[3][3] = {{1.164, 0, 1.596},
-                                    {1.164, -0.392, -0.813},
-                                    {1.164, 2.017, 0}};
-    float shift_vector[3] = {16.0, 128.0, 128.0};
     float* rgb_image = new float[height * width * channels];
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(3)
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
@@ -69,6 +64,7 @@ float* chrominance_subsample(float* ycbcr_image, int height, int width, int chan
     int CbCr_width = width / 2;
     float* subsampled_image = new float[height * width + 2 * CbCr_height * CbCr_width];
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(2)
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
@@ -95,6 +91,7 @@ float* chrominance_upsample(float* subsampled_image, int height, int width, int 
     int CbCr_width = width / 2;
     float* ycbcr_image = new float[height * width * channels];
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(2)
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)

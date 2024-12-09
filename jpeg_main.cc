@@ -7,6 +7,7 @@
 #include <omp.h>
 #include <immintrin.h>
 #include <iostream>
+#include <time.h>
 #include "png_io.h"
 #include "color_space.h"
 #include "utility.h"
@@ -15,21 +16,18 @@
 
 using namespace std;
 
+int omp_threads;
+
 int main(int argc, char** argv) {
-    int mpi_rank, mpi_rank_size, omp_threads;
-    MPI_Status stat;
-
-    MPI_Init(&argc, &argv);
-
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_rank_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     omp_threads = omp_get_max_threads();
 
-    cout << "Number of processes: " << mpi_rank_size << endl;
     cout << "Number of threads: " << omp_threads << endl;
 
     assert(argc == 2);
     const string filename = argv[1];
+
+    struct timespec start, end;
+    double elapsed_time;
 
     // read image
     Image img = read_png(filename);
@@ -41,7 +39,11 @@ int main(int argc, char** argv) {
 
     /* Compression*/
     // step 1: convert RGB to YCbCr
+    // clock_gettime(CLOCK_MONOTONIC, &start);
     float *ycbcr_image = RGB_2_YCbCr(img);
+    // clock_gettime(CLOCK_MONOTONIC, &end);
+    // elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    // printf("Elapsed time: %f seconds\n", elapsed_time);
 
     // step 2: chrominance subsample
     float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
@@ -83,6 +85,7 @@ int main(int argc, char** argv) {
     Image rgb_img = {img.width, img.height, img.channels, {}};
     rgb_img.data.resize(height, vector<vector<int>>(width, vector<int>(channels)));
 
+    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(3)
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
