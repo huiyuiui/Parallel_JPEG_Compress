@@ -13,6 +13,7 @@
 #include "utility.h"
 #include "quantization.h"
 #include "huffman_code.h"
+#include "DCT.h"
 
 using namespace std;
 
@@ -49,7 +50,7 @@ int main(int argc, char** argv) {
     float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
 
     // step 3: DCT
-    // TODO:
+    float *dct_image = DCT(subsampled_image, height, width, channels);
 
     // step 4: quantization
     int* quantized_image = quantization(subsampled_image, height, width);
@@ -65,7 +66,7 @@ int main(int argc, char** argv) {
     int* dequantized_image = dequantization(decoded_image, height, width);
 
     // step 3: IDCT
-    // TODO:
+    float *idct_image = IDCT(dequantized_image, height, width, channels);
 
     // step 4: chrominance upsample
     ycbcr_image = chrominance_upsample(subsampled_image, height, width, channels);
