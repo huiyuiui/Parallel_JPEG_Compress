@@ -5,7 +5,6 @@
 #include <string.h>
 #include <mpi.h>
 #include <omp.h>
-#include <immintrin.h>
 #include <iostream>
 #include <time.h>
 #include "png_io.h"
@@ -40,30 +39,35 @@ int main(int argc, char** argv) {
 
     /* Compression*/
     // step 1: convert RGB to YCbCr
-    // clock_gettime(CLOCK_MONOTONIC, &start);
-    float *ycbcr_image = RGB_2_YCbCr(img);
-    // clock_gettime(CLOCK_MONOTONIC, &end);
-    // elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    // printf("Elapsed time: %f seconds\n", elapsed_time);
+    
+    // float *ycbcr_image = RGB_2_YCbCr(img);
+    float *ycbcr_image = RGB_2_YCbCr_avx512(img);
 
     // step 2: chrominance subsample
-    float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
+    // float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
+    float* subsampled_image = chrominance_subsample_avx512(ycbcr_image, height, width, channels);
+   
 
     // step 3: DCT
     float *dct_image = DCT(subsampled_image, height, width);
 
     // step 4: quantization
-    int* quantized_image = quantization(dct_image, height, width);
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    // int* quantized_image = quantization(dct_image, height, width);
+    int *quantized_image = quantization_avx512(dct_image, height, width);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    printf("Elapsed time: %f seconds\n", elapsed_time);
 
     // step 5: huffman encoding
-    auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
+    // auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
 
-    // /* Decompression */
-    // // step 1: huffman decoding
-    int *decoded_image = huffman_decode(encoded_image, codebook);
+    /* Decompression */
+    // step 1: huffman decoding
+    // int *decoded_image = huffman_decode(encoded_image, codebook);
 
     // step 2: dequantization
-    int* dequantized_image = dequantization(decoded_image, height, width);
+    int* dequantized_image = dequantization(quantized_image, height, width);
 
     // step 3: IDCT
     float *idct_image = iDCT(dequantized_image, height, width);
@@ -76,11 +80,11 @@ int main(int argc, char** argv) {
 
     float psnr = PSNR(img, rgb_image);
     float subsample_compressed_ratio = compression_ratio(total_size, height * width + 2 * height / 2 * width / 2);
-    float huffman_compressed_ration = compression_ratio(total_size, encoded_image.length());
+    // float huffman_compressed_ration = compression_ratio(total_size, encoded_image.length());
 
     cout << "Compressed PSNR: " << psnr << endl;
     cout << "Compressed ratio after subsample: " << subsample_compressed_ratio << endl;
-    cout << "Compressed ratio after huffman encode: " << huffman_compressed_ration << endl;
+    // cout << "Compressed ratio after huffman encode: " << huffman_compressed_ration << endl;
 
     // recover image
     Image rgb_img = {img.width, img.height, img.channels, {}};

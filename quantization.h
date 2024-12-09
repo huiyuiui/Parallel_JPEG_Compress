@@ -32,5 +32,6 @@ int* quantization(float* dct_image, int height, int width);
 
 int* dequantization(int* idct_image, int height, int width);
 
+int* quantization_avx512(float *dct_image, int height, int width);
 
 #endif // QUANTIZATION_H

@@ -24,5 +24,8 @@ float* chrominance_subsample(float* ycbcr_image, int height, int width, int chan
 
 float* chrominance_upsample(float* subsampled_image, int height, int width, int channels);
 
+float *RGB_2_YCbCr_avx512(Image &rgb_image);
+
+float *chrominance_subsample_avx512(float *ycbcr_image, int height, int width, int channels);
 
 #endif // COLOR_SPACE_H
