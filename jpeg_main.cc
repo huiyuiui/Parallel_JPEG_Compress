@@ -50,26 +50,26 @@ int main(int argc, char** argv) {
     float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
 
     // step 3: DCT
-    float *dct_image = DCT(subsampled_image, height, width, channels);
+    float *dct_image = DCT(subsampled_image, height, width);
 
     // step 4: quantization
-    int* quantized_image = quantization(subsampled_image, height, width);
+    int* quantized_image = quantization(dct_image, height, width);
 
     // step 5: huffman encoding
     auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
 
-    /* Decompression */
-    // step 1: huffman decoding
+    // /* Decompression */
+    // // step 1: huffman decoding
     int *decoded_image = huffman_decode(encoded_image, codebook);
 
     // step 2: dequantization
     int* dequantized_image = dequantization(decoded_image, height, width);
 
     // step 3: IDCT
-    float *idct_image = IDCT(dequantized_image, height, width, channels);
+    float *idct_image = iDCT(dequantized_image, height, width);
 
     // step 4: chrominance upsample
-    ycbcr_image = chrominance_upsample(subsampled_image, height, width, channels);
+    ycbcr_image = chrominance_upsample(idct_image, height, width, channels);
 
     // step 5: convert YCbCr to RGB
     float *rgb_image = YcbCr_2_RGB(ycbcr_image, height, width, channels);
