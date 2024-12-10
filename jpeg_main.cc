@@ -60,11 +60,11 @@ int main(int argc, char** argv) {
     printf("Elapsed time: %f seconds\n", elapsed_time);
 
     // step 5: huffman encoding
-    // auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
+    auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
 
     /* Decompression */
     // step 1: huffman decoding
-    // int *decoded_image = huffman_decode(encoded_image, codebook);
+    int *decoded_image = huffman_decode(encoded_image, codebook , height * width + 2 * height / 2 * width / 2);
 
     // step 2: dequantization
     int* dequantized_image = dequantization(quantized_image, height, width);
