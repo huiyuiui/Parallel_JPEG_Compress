@@ -23,7 +23,6 @@ vector<pair<int, int>> rle_compress(const int* data, int size) {
 
     return compressedData;
 }
-
 int* rle_decompress(const vector<pair<int, int>> compressedData, int targetLength) {
     int* decompressedData = new int[targetLength];
     int currentIndex = 0;
@@ -133,27 +132,60 @@ unordered_map<int, int> calculateFrequencies(const int* data, int size) {
 // }
 string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
     int total_num = omp_get_max_threads();
+
+    // Precompute chunk boundaries for each thread
+    vector<int> chunk_starts(total_num), chunk_sizes(total_num);
+    int base_size = size / total_num;
+    int remainder = size % total_num;
+    int offset = 0;
+
+    for (int t = 0; t < total_num; t++) {
+        int chunk_size = base_size + (t < remainder ? 1 : 0);
+        chunk_starts[t] = offset;
+        chunk_sizes[t] = chunk_size;
+        offset += chunk_size;
+    }
+
     vector<string> threadResults(total_num);
-    
+
     #pragma omp parallel
     {
         int threadId = omp_get_thread_num();
-        int local_size = size / total_num , remain_size = size % total_num , local_start;
-        if(threadId < remain_size){
-            local_size++;
-            local_start = threadId * local_size;
-        }
-        else local_start = threadId * local_size + remain_size;
+        int start = chunk_starts[threadId];
+        int end   = start + chunk_sizes[threadId];
 
-        for (int i = local_start; i < local_start + local_size ; i++) {
+        // If we had a direct indexing array for codebook, we could do something like:
+        // const std::string* codeArray = ... // direct indexing from value
+        // Then we'd avoid the map lookup.
+
+        // Just parallel; no vectorization here since it's dictionary lookup
+        string localEncoded;
+        localEncoded.reserve((end - start) * 8); // guess capacity to reduce reallocations
+
+        for (int i = start; i < end; i++) {
             auto it = codebook.find(data[i]);
-            threadResults[threadId] += it->second;
+            // If codebook lookup is O(1) average, this is fine. For direct indexing:
+            // localEncoded += codeArray[data[i]];
+
+            if (it != codebook.end()) {
+                localEncoded += it->second;
+            } else {
+                // Handle error or missing code
+            }
         }
+
+        threadResults[threadId] = move(localEncoded);
     }
 
-    string encodedData = "";
-    for (const auto& threadResult : threadResults) {
-        encodedData += threadResult;
+    // Combine results
+    string encodedData;
+    // Precompute size for efficiency
+    size_t totalLength = 0;
+    for (auto &res : threadResults) totalLength += res.size();
+    encodedData.reserve(totalLength);
+
+    for (auto &res : threadResults) {
+        encodedData += move(res);
     }
 
     return encodedData;
