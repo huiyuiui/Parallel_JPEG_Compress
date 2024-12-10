@@ -110,30 +110,7 @@ string encodeData(const int* data, int size, const unordered_map<int, string>& c
     }
     return encodedData;
 }
-// string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
-    
-//     vector<string> threadResults(omp_get_max_threads());
 
-//     #pragma omp parallel
-//     {
-//         int tid = omp_get_thread_num();
-//         stringstream localStream;
-
-//         #pragma omp for
-//         for (int i = 0; i < size; ++i) {
-//             localStream << codebook.at(data[i]);
-//         }
-
-//         threadResults[tid] = localStream.str();
-//     }
-
-//     string encodedData;
-//     for (const auto& partialResult : threadResults) {
-//         encodedData += partialResult;
-//     }
-
-//     return encodedData;
-// }
 pair<string, unordered_map<int, string>> huffman_encode(const int* data, int size) {
 
     auto compressedData = rle_compress(data, size);
