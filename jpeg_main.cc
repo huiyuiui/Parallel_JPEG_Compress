@@ -36,10 +36,11 @@ int main(int argc, char** argv) {
     int width = img.width;
     int channels = img.channels;
     int total_size = height * width * channels;
-
-    /* Compression*/
-    // step 1: convert RGB to YCbCr
     
+    /* Compression*/
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    // step 1: convert RGB to YCbCr
     // float *ycbcr_image = RGB_2_YCbCr(img);
     float *ycbcr_image = RGB_2_YCbCr_avx512(img);
 
@@ -47,20 +48,19 @@ int main(int argc, char** argv) {
     // float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
     float* subsampled_image = chrominance_subsample_avx512(ycbcr_image, height, width, channels);
    
-
     // step 3: DCT
     float *dct_image = DCT(subsampled_image, height, width);
 
     // step 4: quantization
-    clock_gettime(CLOCK_MONOTONIC, &start);
     // int* quantized_image = quantization(dct_image, height, width);
     int *quantized_image = quantization_avx512(dct_image, height, width);
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("Elapsed time: %f seconds\n", elapsed_time);
 
     // step 5: huffman encoding
     auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    printf("Compressed time: %f seconds\n", elapsed_time);
 
     /* Decompression */
     // step 1: huffman decoding
@@ -80,11 +80,11 @@ int main(int argc, char** argv) {
 
     float psnr = PSNR(img, rgb_image);
     float subsample_compressed_ratio = compression_ratio(total_size, height * width + 2 * height / 2 * width / 2);
-    // float huffman_compressed_ration = compression_ratio(total_size, encoded_image.length());
+    float huffman_compressed_ratio = compression_ratio(total_size * sizeof(int) * 8, encoded_image.length());
 
     cout << "Compressed PSNR: " << psnr << endl;
     cout << "Compressed ratio after subsample: " << subsample_compressed_ratio << endl;
-    // cout << "Compressed ratio after huffman encode: " << huffman_compressed_ration << endl;
+    cout << "Compressed ratio after huffman encode: " << huffman_compressed_ratio << endl;
 
     // recover image
     Image rgb_img = {img.width, img.height, img.channels, {}};

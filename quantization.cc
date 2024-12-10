@@ -118,53 +118,44 @@ int* quantization_avx512(float *dct_image, int height, int width){
                     quantized_image[first_row_index + j] = store_arr[j];
                     quantized_image[second_row_index + j] = store_arr[8 + j];
                 }
-            }
-        }
-    }
 
-    #pragma omp parallel for num_threads(omp_threads) schedule(static) collapse(2)
-    for (int y = 0; y < CbCr_height; y+=8)
-    {
-        for (int x = 0; x < CbCr_width; x+=8)
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                int Cb_first_row_index = Cb_base_index + (y + i * 2) * CbCr_width + x;
-                int Cb_second_row_index = Cb_base_index + (y + i * 2 + 1) * CbCr_width + x;
-                int Cr_first_row_index = Cr_base_index + (y + i * 2) * CbCr_width + x;
-                int Cr_second_row_index = Cr_base_index + (y + i * 2 + 1) * CbCr_width + x;
-                // init Cb, Cr
-                __m512 Cb = _mm512_set_ps(
-                    dct_image[Cb_second_row_index + 7], dct_image[Cb_second_row_index + 6], dct_image[Cb_second_row_index + 5], dct_image[Cb_second_row_index + 4],
-                    dct_image[Cb_second_row_index + 3], dct_image[Cb_second_row_index + 2], dct_image[Cb_second_row_index + 1], dct_image[Cb_second_row_index + 0],
-                    dct_image[Cb_first_row_index + 7], dct_image[Cb_first_row_index + 6], dct_image[Cb_first_row_index + 5], dct_image[Cb_first_row_index + 4],
-                    dct_image[Cb_first_row_index + 3], dct_image[Cb_first_row_index + 2], dct_image[Cb_first_row_index + 1], dct_image[Cb_first_row_index + 0]);
-                __m512 Cr = _mm512_set_ps(
-                    dct_image[Cr_second_row_index + 7], dct_image[Cr_second_row_index + 6], dct_image[Cr_second_row_index + 5], dct_image[Cr_second_row_index + 4],
-                    dct_image[Cr_second_row_index + 3], dct_image[Cr_second_row_index + 2], dct_image[Cr_second_row_index + 1], dct_image[Cr_second_row_index + 0],
-                    dct_image[Cr_first_row_index + 7], dct_image[Cr_first_row_index + 6], dct_image[Cr_first_row_index + 5], dct_image[Cr_first_row_index + 4],
-                    dct_image[Cr_first_row_index + 3], dct_image[Cr_first_row_index + 2], dct_image[Cr_first_row_index + 1], dct_image[Cr_first_row_index + 0]);
-                // quantize Cb, Cr
-                __m512 Q_Cb = _mm512_div_ps(Cb, Chromi_Qtable[i]);
-                __m512 Q_Cr = _mm512_div_ps(Cr, Chromi_Qtable[i]);
-                __m512i Q_Cb_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(Q_Cb, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
-                __m512i Q_Cr_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(Q_Cr, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
-                // store Cb, Cr
-                int store_arr_Cb[16];
-                int store_arr_Cr[16];
-                _mm512_storeu_epi32((__m512i *)store_arr_Cb, Q_Cb_int);
-                _mm512_storeu_epi32((__m512i *)store_arr_Cr, Q_Cr_int);
-                for (int j = 0; j < 8; j++)
-                {
-                    quantized_image[Cb_first_row_index + j] = store_arr_Cb[j];
-                    quantized_image[Cb_second_row_index + j] = store_arr_Cb[8 + j];
-                    quantized_image[Cr_first_row_index + j] = store_arr_Cr[j];
-                    quantized_image[Cr_second_row_index + j] = store_arr_Cr[8 + j];
+                if(y % 16 == 0 && y / 2 < CbCr_height && x % 16 == 0 && x / 2 < CbCr_width){ // for better load balancing
+                    int Cb_first_row_index = Cb_base_index + (y / 2 + i * 2) * CbCr_width + x / 2;
+                    int Cb_second_row_index = Cb_base_index + (y / 2 + i * 2 + 1) * CbCr_width + x / 2;
+                    int Cr_first_row_index = Cr_base_index + (y / 2 + i * 2) * CbCr_width + x / 2;
+                    int Cr_second_row_index = Cr_base_index + (y / 2 + i * 2 + 1) * CbCr_width + x / 2;
+                    // init Cb, Cr
+                    __m512 Cb = _mm512_set_ps(
+                        dct_image[Cb_second_row_index + 7], dct_image[Cb_second_row_index + 6], dct_image[Cb_second_row_index + 5], dct_image[Cb_second_row_index + 4],
+                        dct_image[Cb_second_row_index + 3], dct_image[Cb_second_row_index + 2], dct_image[Cb_second_row_index + 1], dct_image[Cb_second_row_index + 0],
+                        dct_image[Cb_first_row_index + 7], dct_image[Cb_first_row_index + 6], dct_image[Cb_first_row_index + 5], dct_image[Cb_first_row_index + 4],
+                        dct_image[Cb_first_row_index + 3], dct_image[Cb_first_row_index + 2], dct_image[Cb_first_row_index + 1], dct_image[Cb_first_row_index + 0]);
+                    __m512 Cr = _mm512_set_ps(
+                        dct_image[Cr_second_row_index + 7], dct_image[Cr_second_row_index + 6], dct_image[Cr_second_row_index + 5], dct_image[Cr_second_row_index + 4],
+                        dct_image[Cr_second_row_index + 3], dct_image[Cr_second_row_index + 2], dct_image[Cr_second_row_index + 1], dct_image[Cr_second_row_index + 0],
+                        dct_image[Cr_first_row_index + 7], dct_image[Cr_first_row_index + 6], dct_image[Cr_first_row_index + 5], dct_image[Cr_first_row_index + 4],
+                        dct_image[Cr_first_row_index + 3], dct_image[Cr_first_row_index + 2], dct_image[Cr_first_row_index + 1], dct_image[Cr_first_row_index + 0]);
+                    // quantize Cb, Cr
+                    __m512 Q_Cb = _mm512_div_ps(Cb, Chromi_Qtable[i]);
+                    __m512 Q_Cr = _mm512_div_ps(Cr, Chromi_Qtable[i]);
+                    __m512i Q_Cb_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(Q_Cb, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+                    __m512i Q_Cr_int = _mm512_cvtps_epi32(_mm512_roundscale_ps(Q_Cr, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC));
+                    // store Cb, Cr
+                    int store_arr_Cb[16];
+                    int store_arr_Cr[16];
+                    _mm512_storeu_epi32((__m512i *)store_arr_Cb, Q_Cb_int);
+                    _mm512_storeu_epi32((__m512i *)store_arr_Cr, Q_Cr_int);
+                    for (int j = 0; j < 8; j++)
+                    {
+                        quantized_image[Cb_first_row_index + j] = store_arr_Cb[j];
+                        quantized_image[Cb_second_row_index + j] = store_arr_Cb[8 + j];
+                        quantized_image[Cr_first_row_index + j] = store_arr_Cr[j];
+                        quantized_image[Cr_second_row_index + j] = store_arr_Cr[8 + j];
+                    }
                 }
             }
         }
     }
-    
 
     return quantized_image;
 }
