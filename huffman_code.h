@@ -27,7 +27,7 @@ struct Compare {
 
 pair<string, unordered_map<int, string>> huffman_encode(const int* data, int size);
 
-int* huffman_decode(const string& encodedData, const unordered_map<int, string>& codebook);
+int* huffman_decode(const string& encodedData, const unordered_map<int, string>& codebook, int outSize);
 
 HuffmanNode* buildHuffmanTree(const unordered_map<int, int>& frequencies);
 
@@ -37,5 +37,8 @@ unordered_map<int, int> calculateFrequencies(const int* data, int size) ;
 
 string encodeData(const int* data, int size, const unordered_map<int, string>& codebook);
 
+vector<pair<int, int>> rle_compress(const int* data, int size);
+
+vector<int> rle_decompress(const vector<pair<int, int>>& compressedData, size_t targetLength);
 
 #endif // HUFFMAN_CODE_H
