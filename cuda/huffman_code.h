@@ -6,7 +6,6 @@
 #include <queue>
 #include <string>
 #include <sstream>
-#include <omp.h>
 using namespace std;
 
 struct HuffmanNode {
