@@ -85,55 +85,79 @@ void generateCodes(HuffmanNode* node, const string& prefix, unordered_map<int, s
 }
 
 
-unordered_map<int, int> calculateFrequencies(const int* data, int size) {
-    unordered_map<int, int> frequencies;
+// unordered_map<int, int> calculateFrequencies(const int* data, int size) {
+//     unordered_map<int, int> frequencies;
 
-    for (int i = 0; i < size; ++i) {
-        frequencies[data[i]]++;
+//     for (int i = 0; i < size; ++i) {
+//         frequencies[data[i]]++;
+//     }
+
+//     return frequencies;
+// }
+
+unordered_map<int, int> calculateFrequencies(const int* data, int size) {
+    int total_num = omp_get_max_threads();
+    vector<unordered_map<int, int>> threadFrequencies(total_num);
+
+    #pragma omp parallel
+    {
+        int threadId = omp_get_thread_num();
+        for (int i = threadId; i < size; i += total_num) {
+            threadFrequencies[threadId][data[i]]++;
+        }
+    }
+
+    unordered_map<int, int> frequencies;
+    for (const unordered_map<int, int>& threadFrequency : threadFrequencies) {
+        for (const pair<int, int>& pair : threadFrequency) {
+            frequencies[pair.first] += pair.second;
+        }
     }
 
     return frequencies;
 }
 
-
-string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
-    string encodedData;
-    for (int i = 0; i < size; ++i) {
-        auto it = codebook.find(data[i]);
-        if (it != codebook.end()) {
-            encodedData += it->second;
-        } 
-        else {
-            cerr << "Error: Value " << data[i] << " not found in codebook." << endl;
-            exit(EXIT_FAILURE);
-        }
-    }
-    return encodedData;
-}
 // string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
-    
-//     vector<string> threadResults(omp_get_max_threads());
-
-//     #pragma omp parallel
-//     {
-//         int tid = omp_get_thread_num();
-//         stringstream localStream;
-
-//         #pragma omp for
-//         for (int i = 0; i < size; ++i) {
-//             localStream << codebook.at(data[i]);
-//         }
-
-//         threadResults[tid] = localStream.str();
-//     }
-
 //     string encodedData;
-//     for (const auto& partialResult : threadResults) {
-//         encodedData += partialResult;
+//     for (int i = 0; i < size; ++i) {
+//         auto it = codebook.find(data[i]);
+//         if (it != codebook.end()) {
+//             encodedData += it->second;
+//         } 
+//         else {
+//             cerr << "Error: Value " << data[i] << " not found in codebook." << endl;
+//             exit(EXIT_FAILURE);
+//         }
 //     }
-
 //     return encodedData;
 // }
+string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
+    int total_num = omp_get_max_threads();
+    vector<string> threadResults(total_num);
+    
+    #pragma omp parallel
+    {
+        int threadId = omp_get_thread_num();
+        int local_size = size / total_num , remain_size = size % total_num , local_start;
+        if(threadId < remain_size){
+            local_size++;
+            local_start = threadId * local_size;
+        }
+        else local_start = threadId * local_size + remain_size;
+
+        for (int i = local_start; i < local_start + local_size ; i++) {
+            auto it = codebook.find(data[i]);
+            threadResults[threadId] += it->second;
+        }
+    }
+
+    string encodedData = "";
+    for (const auto& threadResult : threadResults) {
+        encodedData += threadResult;
+    }
+
+    return encodedData;
+}
 pair<string, unordered_map<int, string>> huffman_encode(const int* data, int size) {
 
     auto compressedData = rle_compress(data, size);
