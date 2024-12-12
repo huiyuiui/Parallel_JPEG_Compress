@@ -7,21 +7,14 @@
 #include <immintrin.h>
 using namespace std;
 
-#define NUM_PI 3.14
-#define NUM_1DIVSQRT2 0.7071
-
-const float cos_values[8][8] = {
-    {1, 0.980805, 0.923956, 0.831635, 0.707388, 0.555984, 0.383235, 0.195774},
-    {1, 0.831635, 0.383235, -0.194212, -0.706262, -0.980493, -0.924564, -0.557307},
-    {1, 0.555984, -0.381764, -0.980493, -0.708513, 0.192649, 0.922733, 0.8334},
-    {1, 0.195774, -0.923345, -0.557307, 0.705133, 0.8334, -0.378818, -0.981725},
-    {1, -0.194212, -0.924564, 0.553334, 0.709636, -0.828973, -0.387644, 0.979543},
-    {1, -0.554659, -0.384706, 0.981421, -0.704003, -0.200457, 0.926374, -0.827187},
-    {1, -0.83075, 0.380291, 0.198896, -0.710757, 0.982027, -0.92088, 0.548016},
-    {1, -0.980493, 0.922733, -0.828973, 0.702871, -0.549347, 0.374391, -0.184829}
-};
-
 void DCT_vec_cal(int N, float *input, float *output, int stride) {
+    float cos_values[N][N];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            cos_values[i][j] = cos((2 * i + 1) * j * M_PI / (2 * N));
+        }
+    }
+
     for (int u = 0; u < N; u++) {
         __m256 output_vec = _mm256_setzero_ps();
 
@@ -42,9 +35,10 @@ void DCT_vec_cal(int N, float *input, float *output, int stride) {
         _mm256_storeu_ps(output + u * stride, output_vec);
     }
 
+    float temp = 1 / sqrt(2.0);
     for (int i = 0; i < N; i++) {
-        output[i * stride] *= NUM_1DIVSQRT2;
-        output[i] *= NUM_1DIVSQRT2;
+        output[i * stride] *= temp;
+        output[i] *= temp;
     }
 }
 
@@ -71,6 +65,13 @@ float* DCT_vec(float *input, int height, int width) {
 }
 
 void DCT_cal(int N, float *input, float *output, int stride) {
+    float cos_values[N][N];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            cos_values[i][j] = cos((2 * i + 1) * j * M_PI / (2 * N));
+        }
+    }
+
     for (int u = 0; u < N; u++) {
         for (int v = 0; v < N; v++) {
             output[u * stride + v] = 0;
@@ -83,9 +84,10 @@ void DCT_cal(int N, float *input, float *output, int stride) {
         }
     }
 
+    float temp = 1 / sqrt(2.0);
     for (int i = 0; i < N; i++) {
-        output[i * stride] *= NUM_1DIVSQRT2;
-        output[i] *= NUM_1DIVSQRT2;
+        output[i * stride] *= temp;
+        output[i] *= temp;
     }
 }
 
@@ -112,15 +114,21 @@ float* DCT(float *input, int height, int width) {
 }
 
 void iDCT_cal(int N, int *input, float *output, int stride) {
-    float alpha_u, alpha_v;
+    float alpha_u, alpha_v, temp = 1 / sqrt(2.0);
+    float cos_values[N][N];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            cos_values[i][j] = cos((2 * i + 1) * j * M_PI / (2 * N));
+        }
+    }
 
     for (int x = 0; x < N; x++) {
         for (int y = 0; y < N; y++) {
             output[x * stride + y] = 0;
             for (int u = 0; u < N; u++) {
-                alpha_u = (u == 0) ? NUM_1DIVSQRT2 : 1;
+                alpha_u = (u == 0) ? temp : 1;
                 for (int v = 0; v < N; v++) {
-                    alpha_v = (v == 0) ? NUM_1DIVSQRT2 : 1;
+                    alpha_v = (v == 0) ? temp : 1;
                     output[x * stride + y] += alpha_u * alpha_v * input[u * stride + v] * cos_values[x][u] * cos_values[y][v];
                 }
             }
