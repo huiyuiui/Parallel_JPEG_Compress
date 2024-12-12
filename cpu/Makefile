@@ -2,9 +2,7 @@ CC = gcc
 CXX = g++
 LDLIBS = -lpng
 CFLAGS = -lm -O3 -mavx512f
-jpeg_main: CC = mpicc
-jpeg_main: CXX = mpicxx
-jpeg_main: CFLAGS += -fopenmp -pthread
+jpeg_main: CFLAGS += -fopenmp
 
 CXXFLAGS = $(CFLAGS)
 TARGETS = jpeg_main
