@@ -49,7 +49,8 @@ int main(int argc, char** argv) {
     float* subsampled_image = chrominance_subsample_avx512(ycbcr_image, height, width, channels);
    
     // step 3: DCT
-    float *dct_image = DCT(subsampled_image, height, width);
+    // float *dct_image = DCT(subsampled_image, height, width);
+    float *dct_image = DCT_vec(subsampled_image, height, width);
 
     // step 4: quantization
     // int* quantized_image = quantization(dct_image, height, width);
@@ -103,5 +104,5 @@ int main(int argc, char** argv) {
         }
     }
 
-    write_png("./assets/output.png", rgb_img);
+    write_png("../assets/output.png", rgb_img);
 }   
