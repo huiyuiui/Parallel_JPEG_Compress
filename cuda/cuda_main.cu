@@ -74,7 +74,8 @@ int main(int argc, char* argv[]) {
     // step 3: DCT
     // TODO:
     cudaMemcpy(host_half_img_f, dev_half_img_f, half_size * sizeof(float), cudaMemcpyDeviceToHost);
-    float* dct_image = DCT(host_half_img_f, height, width);
+    // float* dct_image = DCT(host_half_img_f, height, width);
+    float* dct_image = DCT_cuda(host_half_img_f, height, width);
     cudaMemcpy(dev_half_img_f, dct_image, half_size * sizeof(float), cudaMemcpyHostToDevice);
 
     // step 4: quantization
