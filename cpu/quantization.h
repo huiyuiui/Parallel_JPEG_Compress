@@ -28,6 +28,8 @@ inline int Chrominance_Qtable[8][8] = {
     {99, 99, 99, 99, 99, 99, 99, 99}
 };
 
+inline float scale_factor = 0.8;
+
 int* quantization(float* dct_image, int height, int width);
 
 int* dequantization(int* idct_image, int height, int width);

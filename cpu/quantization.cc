@@ -21,7 +21,7 @@ int* quantization(float* dct_image, int height, int width){
                 for (int j = 0; j < 8; j++)
                 {
                     int Y_index = (y + i) * width + (x + j);
-                    quantized_image[Y_index] = static_cast<int>(round(dct_image[Y_index] / Luminance_Qtable[i][j]));
+                    quantized_image[Y_index] = static_cast<int>(round(dct_image[Y_index] / (Luminance_Qtable[i][j] * scale_factor)));
 
                     if(y < CbCr_height && x < CbCr_width){
                         int Cb_index = height * width + (y + i) * CbCr_width + (x + j);
@@ -52,7 +52,7 @@ int* dequantization(int* idct_image, int height, int width){
                 for (int j = 0; j < 8; j++)
                 {
                     int Y_index = (y + i) * width + (x + j);
-                    dequantized_image[Y_index] = idct_image[Y_index] * Luminance_Qtable[i][j];
+                    dequantized_image[Y_index] = idct_image[Y_index] * (Luminance_Qtable[i][j] * scale_factor);
 
                     if(y < CbCr_height && x < CbCr_width){
                         int Cb_index = height * width + (y + i) * CbCr_width + (x + j);
@@ -77,14 +77,15 @@ int* quantization_avx512(float *dct_image, int height, int width){
     int *quantized_image = new int[height * width + 2 * CbCr_height * CbCr_width];
     // Vectorization: 4 * 16 = 8 * 8 = 64
     __m512 Lumi_Qtable[4], Chromi_Qtable[4];
+    __m512 scale_vec = _mm512_set1_ps(scale_factor);
 
     // init quantization table
     for (int i = 0; i < 4; i++) {
-        Lumi_Qtable[i] = _mm512_cvtepi32_ps(_mm512_set_epi32(
+        Lumi_Qtable[i] = _mm512_mul_ps(scale_vec, _mm512_cvtepi32_ps(_mm512_set_epi32(
             Luminance_Qtable[i * 2 + 1][7], Luminance_Qtable[i * 2 + 1][6], Luminance_Qtable[i * 2 + 1][5], Luminance_Qtable[i * 2 + 1][4],
             Luminance_Qtable[i * 2 + 1][3], Luminance_Qtable[i * 2 + 1][2], Luminance_Qtable[i * 2 + 1][1], Luminance_Qtable[i * 2 + 1][0],
             Luminance_Qtable[i * 2][7], Luminance_Qtable[i * 2][6], Luminance_Qtable[i * 2][5], Luminance_Qtable[i * 2][4],
-            Luminance_Qtable[i * 2][3], Luminance_Qtable[i * 2][2], Luminance_Qtable[i * 2][1], Luminance_Qtable[i * 2][0]));
+            Luminance_Qtable[i * 2][3], Luminance_Qtable[i * 2][2], Luminance_Qtable[i * 2][1], Luminance_Qtable[i * 2][0])));
         Chromi_Qtable[i] = _mm512_cvtepi32_ps(_mm512_set_epi32(
             Chrominance_Qtable[i * 2 + 1][7], Chrominance_Qtable[i * 2 + 1][6], Chrominance_Qtable[i * 2 + 1][5], Chrominance_Qtable[i * 2 + 1][4],
             Chrominance_Qtable[i * 2 + 1][3], Chrominance_Qtable[i * 2 + 1][2], Chrominance_Qtable[i * 2 + 1][1], Chrominance_Qtable[i * 2 + 1][0],
