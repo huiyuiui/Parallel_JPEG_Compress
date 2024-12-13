@@ -1,4 +1,4 @@
-NVFLAGS = -std=c++17 -O3 -Xptxas="-v" -arch=sm_61
+NVFLAGS = -std=c++17 -O3 -Xptxas="-v" -arch=sm_61 -Xcompiler="-fopenmp"
 HIPCCFLAGS = -std=c++17 -O3 --offload-arch=gfx90a
 
 LDFLAGS = -lm -lpng

@@ -1,4 +1,5 @@
 #include "huffman_code.h"
+#include <omp.h>
 
 using namespace std;
 
