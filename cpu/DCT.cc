@@ -15,24 +15,39 @@ void DCT_vec_cal(int N, float *input, float *output, int stride) {
         }
     }
 
-    for (int u = 0; u < N; u++) {
-        __m256 output_vec = _mm256_setzero_ps();
+    for (int u = 0; u < N-1; u += 2) {
+        __m512 output_vec = _mm512_setzero_ps();
 
         for (int x = 0; x < N; x++) {
-            __m256 cos_values_xu = _mm256_set1_ps(cos_values[x][u]);
+            __m512 cos_values_xu = _mm512_set_ps(
+                cos_values[x][u+1], cos_values[x][u+1], cos_values[x][u+1], cos_values[x][u+1],
+                cos_values[x][u+1], cos_values[x][u+1], cos_values[x][u+1], cos_values[x][u+1],
+                cos_values[x][u], cos_values[x][u], cos_values[x][u], cos_values[x][u],
+                cos_values[x][u], cos_values[x][u], cos_values[x][u], cos_values[x][u]
+            );
 
             for (int y = 0; y < N; y++) {
-                __m256 cos_values_yv = _mm256_loadu_ps(&cos_values[y][0]);
-                __m256 input_vec = _mm256_set1_ps(input[x * stride + y]);
+                __m512 cos_values_yv = _mm512_set_ps(
+                    cos_values[y][7], cos_values[y][6], cos_values[y][5], cos_values[y][4],
+                    cos_values[y][3], cos_values[y][2], cos_values[y][1], cos_values[y][0],
+                    cos_values[y][7], cos_values[y][6], cos_values[y][5], cos_values[y][4],
+                    cos_values[y][3], cos_values[y][2], cos_values[y][1], cos_values[y][0]
+                );
+                __m512 input_vec = _mm512_set1_ps(input[x * stride + y]);
 
-                __m256 temp = _mm256_mul_ps(input_vec, cos_values_xu);
-                temp = _mm256_mul_ps(temp, cos_values_yv);
-                output_vec = _mm256_add_ps(output_vec, temp);
+                __m512 temp = _mm512_mul_ps(input_vec, cos_values_xu);
+                temp = _mm512_mul_ps(temp, cos_values_yv);
+                output_vec = _mm512_add_ps(output_vec, temp);
             }
-
         }
-        output_vec = _mm256_mul_ps(output_vec, _mm256_set1_ps(2.0 / N));
-        _mm256_storeu_ps(output + u * stride, output_vec);
+        output_vec = _mm512_mul_ps(output_vec, _mm512_set1_ps(2.0 / N));
+        float output_arr[16];
+        _mm512_storeu_ps(output_arr, output_vec);
+
+        for (int i = 0; i < 8; i++) {
+            output[u * stride + i] = output_arr[i];
+            output[(u+1) * stride + i] = output_arr[8 + i];
+        }
     }
 
     float temp = 1 / sqrt(2.0);
