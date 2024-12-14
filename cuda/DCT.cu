@@ -33,29 +33,22 @@ __global__ void DCT_cuda_cal(int N, float *input, float *output, int stride) {
     }
 }
 
-float* DCT_cuda(float *input, int height, int width) {
+void DCT_cuda(float *input, float *output, int height, int width) {
     const int N = 8;
     const int CbCr_height = height / 2, CbCr_width = width / 2;
 
-    float *output = new float[height * width + 2 * CbCr_height * CbCr_width];
-
-    float *device_input, *device_output, temp = 1 / sqrt(2.0);
-    cudaMalloc(&device_input, (height * width + 2 * CbCr_height * CbCr_width) * sizeof(float));
-    cudaMalloc(&device_output, (height * width + 2 * CbCr_height * CbCr_width) * sizeof(float));
-    cudaMemcpy(device_input, input, (height * width + 2 * CbCr_height * CbCr_width) * sizeof(float), cudaMemcpyHostToDevice);
+    float temp = 1 / sqrt(2.0);
     cudaMemcpyToSymbol(device_temp, &temp, sizeof(float));
 
     dim3 num_threads(N, N);
     dim3 num_blocks(height / N, width / N);
     dim3 num_blocks_CbCr(CbCr_height / N, CbCr_width / N);
 
-    DCT_cuda_cal<<<num_blocks, num_threads>>>(N, device_input, device_output, width);
-    DCT_cuda_cal<<<num_blocks_CbCr, num_threads>>>(N, device_input + height * width, device_output + height * width, CbCr_width);
-    DCT_cuda_cal<<<num_blocks_CbCr, num_threads>>>(N, device_input + height * width + CbCr_height * CbCr_width, device_output + height * width + CbCr_height * CbCr_width, CbCr_width);
+    DCT_cuda_cal<<<num_blocks, num_threads>>>(N, input, output, width);
+    DCT_cuda_cal<<<num_blocks_CbCr, num_threads>>>(N, input + height * width, output + height * width, CbCr_width);
+    DCT_cuda_cal<<<num_blocks_CbCr, num_threads>>>(N, input + height * width + CbCr_height * CbCr_width, output + height * width + CbCr_height * CbCr_width, CbCr_width);
 
-    cudaMemcpy(output, device_output, (height * width + 2 * CbCr_height * CbCr_width) * sizeof(float), cudaMemcpyDeviceToHost);
-
-    return output;
+    return;
 }
 
 void DCT_cal(int N, float *input, float *output, int stride) {
