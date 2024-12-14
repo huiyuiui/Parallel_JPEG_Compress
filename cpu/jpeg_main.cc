@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
 
     float psnr = PSNR(img, rgb_image);
     float subsample_compressed_ratio = compression_ratio(total_size, height * width + 2 * height / 2 * width / 2);
-    float huffman_compressed_ratio = compression_ratio(total_size * sizeof(int) * 8, encoded_image.length());
+    float huffman_compressed_ratio = compression_ratio(total_size * 8, encoded_image.length());
 
     cout << "Compressed PSNR: " << psnr << endl;
     cout << "Compressed ratio after subsample: " << subsample_compressed_ratio << endl;

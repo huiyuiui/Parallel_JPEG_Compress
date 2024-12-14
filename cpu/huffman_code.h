@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <omp.h>
+#include <immintrin.h>
 using namespace std;
 
 struct HuffmanNode {

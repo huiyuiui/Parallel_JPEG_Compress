@@ -2,27 +2,91 @@
 
 using namespace std;
 
-vector<pair<int, int>> rle_compress(const int* data, int size) {
-    vector<pair<int, int>> compressedData;
+// vector<pair<int, int>> rle_compress(const int* data, int size) {
+//     vector<pair<int, int>> compressedData;
 
-    int zeroCount = 0;
+//     int zeroCount = 0;
 
-    for (int i = 0; i < size; ++i) {
-        if (data[i] == 0) {
-            zeroCount++;
-        } else {
-            compressedData.push_back({zeroCount, data[i]});
-            zeroCount = 0;
-        }
-    }
+//     for (int i = 0; i < size; ++i) {
+//         if (data[i] == 0) {
+//             zeroCount++;
+//         } else {
+//             compressedData.push_back({zeroCount, data[i]});
+//             zeroCount = 0;
+//         }
+//     }
 
    
-    if (zeroCount > 0) {
-        compressedData.push_back({-1, -1}); // EOB 標記
+//     if (zeroCount > 0) {
+//         compressedData.push_back({-1, -1}); // EOB 標記
+//     }
+
+//     return compressedData;
+// }
+
+vector<pair<int, int>> rle_compress(const int* data, int size) {
+    vector<pair<int, int>> compressedData;
+    int CHUNK = 16;
+    __m512i zeroVec = _mm512_set1_epi32(0);
+
+    int num_threads = omp_get_max_threads();
+    vector<vector<pair<int, int>>> allCompressed(num_threads);
+    vector<int> trailingZeroCounts(num_threads, 0);
+
+    #pragma omp parallel
+    {
+        int threadId = omp_get_thread_num();
+        vector<pair<int, int>>& localCompressed = allCompressed[threadId];
+        int zeroCount = 0;
+
+        #pragma omp for schedule(static)
+        for (int i = 0; i <= size + CHUNK; i += CHUNK) {
+            __m512i v = _mm512_loadu_si512((const __m512i*)(data + i));
+            __mmask16 cmp_mask = _mm512_cmpeq_epi32_mask(v, zeroVec);
+
+            for (int j = 0; j < CHUNK; j++) {
+                if ((cmp_mask >> j) & 1) {
+                    zeroCount++;
+                } else {
+                    localCompressed.emplace_back(zeroCount, data[i + j]);
+                    zeroCount = 0;
+                }
+            }
+        }
+
+        #pragma omp for schedule(static)
+        for (int i = (size / CHUNK) * CHUNK; i < size; i++) {
+            if (data[i] == 0) {
+                zeroCount++;
+            } else {
+                localCompressed.emplace_back(zeroCount, data[i]);
+                zeroCount = 0;
+            }
+        }
+
+        trailingZeroCounts[threadId] = zeroCount;
+    }
+
+    int accumulatedZeroCount = 0;
+    for (int t = 0; t < num_threads; t++) {
+        if (accumulatedZeroCount > 0 && !allCompressed[t].empty()) {
+            allCompressed[t][0].first += accumulatedZeroCount;
+            accumulatedZeroCount = 0;
+        }
+
+        compressedData.insert(compressedData.end(), allCompressed[t].begin(), allCompressed[t].end());
+
+        accumulatedZeroCount += trailingZeroCounts[t];
+    }
+
+    if (accumulatedZeroCount > 0) {
+        compressedData.emplace_back(-1, -1);
     }
 
     return compressedData;
 }
+
+
 int* rle_decompress(const vector<pair<int, int>> compressedData, int targetLength) {
     int* decompressedData = new int[targetLength];
     int currentIndex = 0;
@@ -118,16 +182,14 @@ unordered_map<int, int> calculateFrequencies(const int* data, int size) {
 
 // string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
 //     string encodedData;
+
 //     for (int i = 0; i < size; ++i) {
 //         auto it = codebook.find(data[i]);
 //         if (it != codebook.end()) {
 //             encodedData += it->second;
 //         } 
-//         else {
-//             cerr << "Error: Value " << data[i] << " not found in codebook." << endl;
-//             exit(EXIT_FAILURE);
-//         }
 //     }
+    
 //     return encodedData;
 // }
 string encodeData(const int* data, int size, const unordered_map<int, string>& codebook) {
@@ -154,32 +216,20 @@ string encodeData(const int* data, int size, const unordered_map<int, string>& c
         int start = chunk_starts[threadId];
         int end   = start + chunk_sizes[threadId];
 
-        // If we had a direct indexing array for codebook, we could do something like:
-        // const std::string* codeArray = ... // direct indexing from value
-        // Then we'd avoid the map lookup.
-
-        // Just parallel; no vectorization here since it's dictionary lookup
         string localEncoded;
-        localEncoded.reserve((end - start) * 8); // guess capacity to reduce reallocations
+        localEncoded.reserve((end - start) * 8);
 
         for (int i = start; i < end; i++) {
             auto it = codebook.find(data[i]);
-            // If codebook lookup is O(1) average, this is fine. For direct indexing:
-            // localEncoded += codeArray[data[i]];
-
             if (it != codebook.end()) {
                 localEncoded += it->second;
-            } else {
-                // Handle error or missing code
             }
         }
 
         threadResults[threadId] = move(localEncoded);
     }
 
-    // Combine results
     string encodedData;
-    // Precompute size for efficiency
     size_t totalLength = 0;
     for (auto &res : threadResults) totalLength += res.size();
     encodedData.reserve(totalLength);
@@ -190,6 +240,7 @@ string encodeData(const int* data, int size, const unordered_map<int, string>& c
 
     return encodedData;
 }
+
 pair<string, unordered_map<int, string>> huffman_encode(const int* data, int size) {
 
     auto compressedData = rle_compress(data, size);
