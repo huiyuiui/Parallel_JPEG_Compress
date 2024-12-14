@@ -23,9 +23,9 @@ int* quantization(float* dct_image, int height, int width){
                     int Y_index = (y + i) * width + (x + j);
                     quantized_image[Y_index] = static_cast<int>(round(dct_image[Y_index] / (Luminance_Qtable[i][j] * scale_factor)));
 
-                    if(y < CbCr_height && x < CbCr_width){
-                        int Cb_index = height * width + (y + i) * CbCr_width + (x + j);
-                        int Cr_index = height * width + CbCr_height * CbCr_width + (y + i) * CbCr_width + (x + j);
+                    if(y % 16 == 0 && y / 2 < CbCr_height && x % 16 == 0 && x / 2 < CbCr_width){
+                        int Cb_index = height * width + (y / 2 + i) * CbCr_width + (x / 2 + j);
+                        int Cr_index = height * width + CbCr_height * CbCr_width + (y / 2 + i) * CbCr_width + (x / 2 + j);
                         quantized_image[Cb_index] = static_cast<int>(round(dct_image[Cb_index] / Chrominance_Qtable[i][j]));
                         quantized_image[Cr_index] = static_cast<int>(round(dct_image[Cr_index] / Chrominance_Qtable[i][j]));
                     }
