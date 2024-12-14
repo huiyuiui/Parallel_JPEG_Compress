@@ -14,23 +14,29 @@ __global__ void DCT_cuda_cal(int N, float *input, float *output, int stride) {
     int u = threadIdx.x, v = threadIdx.y;
 
     __shared__ float cos_values[8][8];
+    __shared__ float S_output[8][8];
+    __shared__ float S_input[8][8];
+
     cos_values[u][v] = cos((2 * u + 1) * v * M_PI / (2 * N));
+    S_input[u][v] = input[offset + u * stride + v];
+    S_output[u][v] = 0;
     __syncthreads();
 
-    output[offset + u * stride + v] = 0;
     for (int x = 0; x < N; x++) {
         for (int y = 0; y < N; y++) {
-            output[offset + u * stride + v] += input[offset + x * stride + y] * cos_values[x][u] * cos_values[y][v];
+            S_output[u][v] += S_input[x][y] * cos_values[x][u] * cos_values[y][v];
         }
     }
-    output[offset + u * stride + v] *= 2.0 / N;
+    S_output[u][v] *= 2.0 / N;
 
     if (u == 0) {
-        output[offset + v] *= device_temp;
+        S_output[0][v] *= device_temp;
     }
     if (v == 0) {
-        output[offset + u * stride] *= device_temp;
+        S_output[u][0] *= device_temp;
     }
+
+    output[offset + u * stride + v] = S_output[u][v];
 }
 
 void DCT_cuda(float *input, float *output, int height, int width) {
