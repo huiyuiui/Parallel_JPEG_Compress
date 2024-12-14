@@ -72,16 +72,12 @@ int main(int argc, char* argv[]) {
     chrominance_subsample_kernel<<<blockNum, blockSize>>>(dev_full_img_f, dev_half_img_f, height, width, channels);
     
     // step 3: DCT
-    // TODO:
-    cudaMemcpy(host_half_img_f, dev_half_img_f, half_size * sizeof(float), cudaMemcpyDeviceToHost);
-    // float* dct_image = DCT(host_half_img_f, height, width);
-    float* dct_image = DCT_cuda(host_half_img_f, height, width);
-    cudaMemcpy(dev_half_img_f, dct_image, half_size * sizeof(float), cudaMemcpyHostToDevice);
+    DCT_cuda(dev_half_img_f, dev_full_img_f, height, width);
 
     // step 4: quantization
     // dim3 quantizedBlockSize(8, 8);
     // dim3 quantizedBlockNum((width + 8 - 1) / 8, (height + 8 - 1) / 8);
-    quantization_kernel<<<blockNum, blockSize>>>(dev_half_img_f, dev_half_img_i, height, width);
+    quantization_kernel<<<blockNum, blockSize>>>(dev_full_img_f, dev_half_img_i, height, width);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
