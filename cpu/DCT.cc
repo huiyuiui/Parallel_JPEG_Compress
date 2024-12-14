@@ -99,12 +99,14 @@ float* DCT(float *input, int height, int width) {
 
     float *output = new float[height * width + 2 * CbCr_height * CbCr_width];
     // for Y
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < height/N; i++) {
         for (int j = 0; j < width/N; j++) {
             DCT_cal(N, input+i*N*width+j*N, output+i*N*width+j*N, width);
         }
     }
     // for Cb and Cr
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < CbCr_height/N; i++) {
         for (int j = 0; j < CbCr_width/N; j++) {
             DCT_cal(N, input+height*width+i*N*CbCr_width+j*N, output+height*width+i*N*CbCr_width+j*N, CbCr_width);
