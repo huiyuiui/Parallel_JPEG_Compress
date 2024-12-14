@@ -37,35 +37,30 @@ int main(int argc, char** argv) {
     int total_size = height * width * channels;
     
     /* Compression */
-    // clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     // step 1: convert RGB to YCbCr
-    float *ycbcr_image = RGB_2_YCbCr(img);
-    // float *ycbcr_image = RGB_2_YCbCr_avx512(img);
+    // float *ycbcr_image = RGB_2_YCbCr(img);
+    float *ycbcr_image = RGB_2_YCbCr_avx512(img);
 
     // step 2: chrominance subsample
-    float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
-    // float* subsampled_image = chrominance_subsample_avx512(ycbcr_image, height, width, channels);
+    // float* subsampled_image = chrominance_subsample(ycbcr_image, height, width, channels);
+    float* subsampled_image = chrominance_subsample_avx512(ycbcr_image, height, width, channels);
    
     // step 3: DCT
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    float *dct_image = DCT(subsampled_image, height, width);
-    // float *dct_image = DCT_vec(subsampled_image, height, width);
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("Compressed time: %f seconds\n", elapsed_time);
+    // float *dct_image = DCT(subsampled_image, height, width);
+    float *dct_image = DCT_vec(subsampled_image, height, width);
 
     // step 4: quantization
-    
-    int* quantized_image = quantization(dct_image, height, width);
-    // int *quantized_image = quantization_avx512(dct_image, height, width);
+    // int* quantized_image = quantization(dct_image, height, width);
+    int *quantized_image = quantization_avx512(dct_image, height, width);
 
     // step 5: huffman encoding
     auto [encoded_image, codebook] = huffman_encode(quantized_image, height * width + 2 * height / 2 * width / 2);
 
-    // clock_gettime(CLOCK_MONOTONIC, &end);
-    // elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    // printf("Compressed time: %f seconds\n", elapsed_time);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    printf("Compressed time: %f seconds\n", elapsed_time);
 
     /* Decompression */
     // step 1: huffman decoding
