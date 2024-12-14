@@ -1,10 +1,7 @@
 #include <iostream>
 #include <cmath>
-#include <chrono>
-#include <omp.h>
 #include <cstdlib>
-#include <immintrin.h>
-#include <cuda_runtime.h>
+#include <cuda.h>
 using namespace std;
 
 __constant__ float device_temp;
